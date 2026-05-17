@@ -1,0 +1,62 @@
+<nav class="glass border-b border-white/10 rounded-none sticky top-0 z-50">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16">
+
+      <!-- Brand logo -->
+      <a routerLink="/" class="flex items-center gap-2 group">
+        <span class="text-3xl transition-transform group-hover:scale-110 duration-200">🍕</span>
+        <span class="text-xl font-bold">
+          <span class="text-red-400">Pizza</span>
+          <span class="text-white"> 42</span>
+        </span>
+      </a>
+
+      <!-- Auth controls -->
+      <div class="flex items-center gap-3">
+
+        <!-- Not authenticated -->
+        @if (!(auth.isAuthenticated$ | async)) {
+          <button
+            (click)="login()"
+            class="btn-identity text-sm">
+            Sign In
+          </button>
+        }
+
+        <!-- Authenticated -->
+        @if (auth.isAuthenticated$ | async) {
+          <div class="flex items-center gap-3">
+            <!-- User avatar + email -->
+            @if (auth.user$ | async; as user) {
+              <div class="flex items-center gap-2">
+                <img
+                  [src]="user.picture"
+                  [alt]="user.name"
+                  class="w-8 h-8 rounded-full ring-2 ring-indigo-400/50"
+                  onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%2212%22 fill=%22%236366f1%22/%3E%3C/svg%3E'"
+                />
+                <span class="text-sm text-slate-300 hidden sm:block">{{ user.email }}</span>
+              </div>
+            }
+
+            <!-- Email verification badge -->
+            @if (auth.user$ | async; as user) {
+              @if (!user.email_verified) {
+                <span class="text-xs bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 px-2 py-1 rounded-lg">
+                  ⚠ Unverified
+                </span>
+              }
+            }
+
+            <button
+              (click)="logout()"
+              class="btn-identity-outline text-sm">
+              Sign Out
+            </button>
+          </div>
+        }
+
+      </div>
+    </div>
+  </div>
+</nav>

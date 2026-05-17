@@ -1,0 +1,186 @@
+<!-- Email Verification Modal (edge case safety net) -->
+@if (showEmailModal()) {
+  @if (auth.user$ | async; as user) {
+    <app-email-verification-modal
+      [email]="user.email || ''"
+      (dismissed)="onModalDismissed()">
+    </app-email-verification-modal>
+  }
+}
+
+<!-- Success Toast -->
+@if (toastMessage()) {
+  <div class="fixed top-6 left-1/2 -translate-x-1/2 z-50
+              bg-green-500/90 backdrop-blur text-white font-semibold
+              px-6 py-4 rounded-2xl shadow-2xl border border-green-400/50
+              flex items-center gap-3 animate-bounce">
+    {{ toastMessage() }}
+  </div>
+}
+
+<div class="min-h-screen bg-slate-900 py-8 px-4 sm:px-6">
+  <div class="max-w-5xl mx-auto">
+
+    <!-- Page header -->
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <h1 class="text-3xl font-bold text-white">Build Your Pizza 🍕</h1>
+        <p class="text-slate-400 mt-1">Customize every layer, then place your order.</p>
+      </div>
+      <button (click)="goHome()" class="text-slate-400 hover:text-white transition-colors flex items-center gap-1 text-sm">
+        ← Back
+      </button>
+    </div>
+
+    <!-- Main builder grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+      <!-- ===== LIVE PIZZA PREVIEW ===== -->
+      <div class="glass p-6 flex flex-col items-center justify-center min-h-72">
+        <h2 class="text-lg font-semibold text-slate-300 mb-6">Live Preview</h2>
+
+        <!-- Pizza circle -->
+        <div class="relative w-56 h-56">
+          <!-- Outer crust -->
+          <div class="absolute inset-0 rounded-full"
+               [class]="selectedCrust() === 'thick' ? 'bg-yellow-700 shadow-2xl' :
+                        selectedCrust() === 'thin'  ? 'bg-yellow-500 shadow-lg' :
+                                                       'bg-yellow-600 shadow-xl'">
+          </div>
+          <!-- Sauce layer -->
+          <div class="absolute inset-4 rounded-full bg-red-700/90"></div>
+          <!-- Cheese layer -->
+          <div class="absolute inset-6 rounded-full bg-yellow-200/80"></div>
+
+          <!-- Toppings — scattered across the pizza surface -->
+          @for (topping of selectedToppings; track topping.id) {
+            <span
+              class="absolute text-xl select-none"
+              [style.top.%]="topping.position.top"
+              [style.left.%]="topping.position.left"
+              [title]="topping.label">
+              {{ topping.emoji }}
+            </span>
+          }
+
+          <!-- Empty state overlay -->
+          @if (selectedToppings.length === 0) {
+            <div class="absolute inset-0 flex items-center justify-center">
+              <span class="text-yellow-900/60 text-xs font-medium text-center px-6">
+                Add toppings →
+              </span>
+            </div>
+          }
+        </div>
+
+        <!-- Size indicator -->
+        <p class="mt-5 text-slate-400 text-sm capitalize">
+          {{ selectedSize() }} · {{ selectedCrust() }} crust
+          @if (selectedToppings.length > 0) {
+            · {{ selectedToppings.length }} topping{{ selectedToppings.length === 1 ? '' : 's' }}
+          }
+        </p>
+      </div>
+
+      <!-- ===== CONFIGURATION PANEL ===== -->
+      <div class="space-y-6">
+
+        <!-- SIZE selection -->
+        <div class="glass p-5">
+          <h3 class="font-semibold text-white mb-4 text-sm uppercase tracking-widest text-slate-400">Size</h3>
+          <div class="grid grid-cols-3 gap-3">
+            @for (size of sizes; track size.id) {
+              <button
+                (click)="selectedSize.set(size.id)"
+                [class]="selectedSize() === size.id
+                  ? 'ring-2 ring-red-500 bg-red-500/20 text-white'
+                  : 'bg-white/5 hover:bg-white/10 text-slate-300'"
+                class="rounded-xl p-3 text-center transition-all duration-150 border border-white/10">
+                <div class="font-semibold text-sm">{{ size.label }}</div>
+                <div class="text-xs text-slate-400 mt-0.5">{{ size.description }}</div>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- CRUST selection -->
+        <div class="glass p-5">
+          <h3 class="font-semibold text-white mb-4 text-sm uppercase tracking-widest text-slate-400">Crust</h3>
+          <div class="grid grid-cols-3 gap-3">
+            @for (crust of crusts; track crust.id) {
+              <button
+                (click)="selectedCrust.set(crust.id)"
+                [class]="selectedCrust() === crust.id
+                  ? 'ring-2 ring-red-500 bg-red-500/20 text-white'
+                  : 'bg-white/5 hover:bg-white/10 text-slate-300'"
+                class="rounded-xl p-3 text-center transition-all duration-150 border border-white/10">
+                <div class="font-semibold text-sm">{{ crust.label }}</div>
+                <div class="text-xs text-slate-400 mt-0.5">{{ crust.description }}</div>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- TOPPINGS multi-select -->
+        <div class="glass p-5">
+          <h3 class="font-semibold text-white mb-4 text-sm uppercase tracking-widest text-slate-400">
+            Toppings
+            @if (selectedToppings.length > 0) {
+              <span class="ml-2 text-red-400 normal-case tracking-normal font-normal">
+                ({{ selectedToppings.length }} selected)
+              </span>
+            }
+          </h3>
+          <div class="grid grid-cols-2 gap-2">
+            @for (topping of allToppings; track topping.id) {
+              <button
+                (click)="toggleTopping(topping.id)"
+                [class]="isToppingSelected(topping.id)
+                  ? 'ring-2 ring-red-500 bg-red-500/20 text-white'
+                  : 'bg-white/5 hover:bg-white/10 text-slate-300'"
+                class="rounded-xl px-3 py-2.5 text-sm font-medium flex items-center gap-2
+                       transition-all duration-150 border border-white/10">
+                <span class="text-lg">{{ topping.emoji }}</span>
+                {{ topping.label }}
+                @if (isToppingSelected(topping.id)) {
+                  <span class="ml-auto text-red-400">✓</span>
+                }
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Error message -->
+        @if (errorMessage()) {
+          <div class="glass p-4 border-red-500/40 bg-red-500/10">
+            <p class="text-red-300 text-sm flex items-center gap-2">
+              <span>⚠</span>
+              {{ errorMessage() }}
+            </p>
+          </div>
+        }
+
+        <!-- PLACE ORDER button -->
+        <button
+          (click)="placeOrder()"
+          [disabled]="orderState() === 'submitting' || orderState() === 'success'"
+          class="w-full btn-brand text-lg py-4 flex items-center justify-center gap-2
+                 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100">
+          @if (orderState() === 'submitting') {
+            <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"/>
+            </svg>
+            Placing Order...
+          } @else if (orderState() === 'success') {
+            ✓ Order Confirmed! Redirecting...
+          } @else {
+            🍕 Place Order
+          }
+        </button>
+
+      </div>
+    </div>
+  </div>
+</div>

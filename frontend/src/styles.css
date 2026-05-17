@@ -1,1 +1,42 @@
-/* You can add global styles to this file, and also import other style files */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  CSS custom properties — single source of truth for the 3-color theme.
+  To retheme the entire app, edit these three variables only.
+*/
+:root {
+  --color-bg: #0f172a;        /* slate-900  — deep background */
+  --color-brand: #ef4444;     /* red-500    — pizza / order actions */
+  --color-identity: #6366f1;  /* indigo-500 — Auth0 / login actions */
+}
+
+html, body {
+  min-height: 100vh;
+  background-color: var(--color-bg);
+  color: white;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Glassmorphism utility — applied via @apply so it can be composed in templates */
+@layer components {
+  .glass {
+    @apply bg-white/10 backdrop-blur-md border border-white/20 shadow-xl rounded-2xl;
+  }
+  .glass-hover {
+    @apply hover:bg-white/15 transition-all duration-200;
+  }
+  .btn-brand {
+    @apply bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-3 rounded-xl
+           transition-all duration-200 shadow-lg hover:shadow-red-500/25 active:scale-95;
+  }
+  .btn-identity {
+    @apply bg-indigo-500 hover:bg-indigo-600 text-white font-semibold px-6 py-3 rounded-xl
+           transition-all duration-200 shadow-lg hover:shadow-indigo-500/25 active:scale-95;
+  }
+  .btn-identity-outline {
+    @apply border border-indigo-400 text-indigo-300 hover:bg-indigo-500/20 font-medium px-4 py-2
+           rounded-xl transition-all duration-200;
+  }
+}

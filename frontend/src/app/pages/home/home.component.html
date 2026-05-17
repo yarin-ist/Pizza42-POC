@@ -1,0 +1,199 @@
+<!-- Email Verification Modal -->
+@if (showEmailModal()) {
+  @if (userEmail$ | async; as email) {
+    <app-email-verification-modal
+      [email]="email"
+      (dismissed)="onModalDismissed()">
+    </app-email-verification-modal>
+  }
+}
+
+<div class="min-h-screen bg-slate-900">
+
+  <!-- ===================== UNAUTHENTICATED HERO ===================== -->
+  @if (!(auth.isAuthenticated$ | async)) {
+    <main class="max-w-5xl mx-auto px-4 sm:px-6 py-20">
+      <!-- Hero section -->
+      <div class="text-center mb-16">
+        <div class="text-8xl mb-6 animate-bounce">🍕</div>
+        <h1 class="text-5xl sm:text-6xl font-bold text-white mb-4 leading-tight">
+          Welcome to
+          <span class="text-red-400"> Pizza</span>
+          <span class="text-indigo-400"> 42</span>
+        </h1>
+        <p class="text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
+          The answer to life, the universe, and the perfect pizza.
+          Sign in to build your dream pie and track every order.
+        </p>
+        <button
+          (click)="auth.loginWithRedirect()"
+          class="btn-identity text-lg px-10 py-4">
+          🚀 Get Started — It's Free
+        </button>
+      </div>
+
+      <!-- Feature highlights -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div class="glass p-6 text-center">
+          <div class="text-4xl mb-3">🎨</div>
+          <h3 class="font-semibold text-white mb-2">Build Your Pizza</h3>
+          <p class="text-slate-400 text-sm">Pick your size, crust, and toppings with a live visual preview.</p>
+        </div>
+        <div class="glass p-6 text-center">
+          <div class="text-4xl mb-3">📜</div>
+          <h3 class="font-semibold text-white mb-2">Order History</h3>
+          <p class="text-slate-400 text-sm">Your full order history is embedded in your login token — no extra API calls.</p>
+        </div>
+        <div class="glass p-6 text-center">
+          <div class="text-4xl mb-3">🔒</div>
+          <h3 class="font-semibold text-white mb-2">Secured by Auth0</h3>
+          <p class="text-slate-400 text-sm">Enterprise-grade identity with refresh tokens and role-based access.</p>
+        </div>
+      </div>
+    </main>
+  }
+
+  <!-- ===================== AUTHENTICATED DASHBOARD ===================== -->
+  @if (auth.isAuthenticated$ | async) {
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 py-10">
+
+      <!-- Welcome card -->
+      @if (auth.user$ | async; as user) {
+        <div class="glass p-6 mb-8 flex items-center gap-5">
+          <img
+            [src]="user.picture"
+            [alt]="user.name"
+            class="w-16 h-16 rounded-full ring-4 ring-indigo-500/40 flex-shrink-0"
+            onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%2212%22 fill=%22%236366f1%22/%3E%3C/svg%3E'"
+          />
+          <div class="flex-1 min-w-0">
+            <h1 class="text-2xl font-bold text-white truncate">
+              Welcome back, {{ user.given_name || user.name }} 👋
+            </h1>
+            <p class="text-slate-400 text-sm truncate">{{ user.email }}</p>
+            @if (!user.email_verified) {
+              <p class="text-yellow-400 text-xs mt-1">
+                ⚠ Email not verified — verify your inbox to place orders
+              </p>
+            } @else {
+              <p class="text-green-400 text-xs mt-1">✓ Verified customer</p>
+            }
+          </div>
+          <!-- Order Now button in welcome card -->
+          <button
+            (click)="onOrderNow()"
+            [disabled]="isCheckingEmail()"
+            class="btn-brand flex-shrink-0 flex items-center gap-2">
+            @if (isCheckingEmail()) {
+              <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"/>
+              </svg>
+              Checking...
+            } @else {
+              🍕 Order Now
+            }
+          </button>
+        </div>
+      }
+
+      <!-- ===== ORDER HISTORY ===== -->
+      @if (orders$ | async; as orders) {
+
+        <!-- Section header -->
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-bold text-white">
+            🗂 Your Orders
+            @if (orders.length > 0) {
+              <span class="ml-2 text-sm font-normal text-slate-400">({{ orders.length }} total)</span>
+            }
+          </h2>
+          @if (orders.length > 5 && !showAllOrders()) {
+            <button
+              (click)="showAllOrders.set(true)"
+              class="text-indigo-400 hover:text-indigo-300 text-sm font-medium transition-colors flex items-center gap-1">
+              View all →
+            </button>
+          }
+          @if (showAllOrders()) {
+            <button
+              (click)="showAllOrders.set(false)"
+              class="text-slate-400 hover:text-slate-300 text-sm transition-colors">
+              Show less ↑
+            </button>
+          }
+        </div>
+
+        <!-- Empty state -->
+        @if (orders.length === 0) {
+          <div class="glass p-10 text-center">
+            <div class="text-6xl mb-4">🍽️</div>
+            <h3 class="text-xl font-semibold text-white mb-2">No orders yet</h3>
+            <p class="text-slate-400 mb-6">Your pizza history will appear here after your first order.</p>
+            <button
+              (click)="onOrderNow()"
+              [disabled]="isCheckingEmail()"
+              class="btn-brand">
+              🍕 Place Your First Order
+            </button>
+          </div>
+        }
+
+        <!-- Order cards -->
+        @if (orders.length > 0) {
+          <div class="space-y-3">
+            @for (order of getDisplayOrders(orders); track order.id) {
+              <div class="glass glass-hover p-4 flex items-center gap-4">
+                <!-- Pizza icon -->
+                <div class="text-3xl flex-shrink-0">🍕</div>
+                <!-- Details -->
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-semibold text-white capitalize">{{ order.pizza }}</span>
+                    <span class="text-xs bg-red-500/20 text-red-300 border border-red-500/30 px-2 py-0.5 rounded-full capitalize">
+                      {{ order.size }}
+                    </span>
+                    <span class="text-xs bg-slate-700/50 text-slate-300 border border-white/10 px-2 py-0.5 rounded-full capitalize">
+                      {{ order.crust }} crust
+                    </span>
+                  </div>
+                  @if ((order.toppings?.length || 0) > 0) {
+                    <p class="text-slate-400 text-xs mt-1 truncate">
+                      + {{ order.toppings.join(', ') }}
+                    </p>
+                  }
+                </div>
+                <!-- Date -->
+                <div class="text-slate-500 text-xs flex-shrink-0 text-right">
+                  {{ formatDate(order.timestamp) }}
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Large Order Now CTA below history -->
+          <div class="mt-8 text-center">
+            <button
+              (click)="onOrderNow()"
+              [disabled]="isCheckingEmail()"
+              class="btn-brand text-lg px-10 py-4 flex items-center gap-2 mx-auto">
+              @if (isCheckingEmail()) {
+                <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                  <path class="opacity-75" fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"/>
+                </svg>
+                Verifying...
+              } @else {
+                🍕 Order Again
+              }
+            </button>
+          </div>
+        }
+      }
+
+    </main>
+  }
+
+</div>
