@@ -4,7 +4,7 @@ export const environment = {
     domain: 'pizza42-poc-yarin.eu.auth0.com',
     // TODO: Replace with the Client ID from Auth0 Dashboard →
     //       Applications → Pizza 42 Angular SPA → Settings → Client ID
-    clientId: 'YOUR_SPA_CLIENT_ID',
+    clientId: 'NnYjPgQG1aNlM6XTONR7vUOxXReumJpF',
     authorizationParams: {
       redirect_uri: window.location.origin,
       audience: 'https://api.pizza42.com',
