@@ -56,6 +56,32 @@ exports.onExecutePostLogin = async (event, api) => {
     // - user_metadata.first_name (previously filled Form A)
     // - event.user.given_name (SSO providers like Google set this natively)
     const hasName = meta.first_name || event.user.given_name;
+
+    // SSO Back-fill: if the user authenticated via Google/social and the
+    // provider already supplied given_name, persist it into user_metadata NOW
+    // so that Block 4 can inject it as a custom claim and future logins
+    // continue to skip Form A. This runs exactly once per SSO user.
+    if (event.user.given_name && !meta.first_name) {
+      const mgmtBackfill = new ManagementClient({
+        domain: event.secrets.AUTH0_DOMAIN,
+        clientId: event.secrets.M2M_CLIENT_ID,
+        clientSecret: event.secrets.M2M_CLIENT_SECRET,
+      });
+      await mgmtBackfill.users.update(
+        { id: event.user.user_id },
+        {
+          user_metadata: {
+            ...meta,
+            first_name: event.user.given_name,
+            last_name: event.user.family_name ?? meta.last_name ?? '',
+          },
+        }
+      );
+      // Update local meta so Block 4 uses the backfilled values in this session
+      meta.first_name = event.user.given_name;
+      meta.last_name = event.user.family_name ?? meta.last_name ?? '';
+    }
+
     if (logins >= 1 && !hasName) {
       return api.prompt.render('ap_doQ2vxByebenEzMdW8H54s');
     }

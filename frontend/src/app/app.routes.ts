@@ -3,6 +3,7 @@ import { AuthGuard } from '@auth0/auth0-angular';
 
 import { HomeComponent } from './pages/home/home.component';
 import { OrderComponent } from './pages/order/order.component';
+import { ProfileComponent } from './pages/profile/profile.component';
 
 export const routes: Routes = [
   {
@@ -17,6 +18,13 @@ export const routes: Routes = [
     // check in the Home component's "Order Now" button, NOT here in the guard.
     path: 'order',
     component: OrderComponent,
+    canActivate: [AuthGuard],
+  },
+  {
+    // Protected profile route — shows the user's enriched profile data sourced
+    // from the ID token custom claims set by the Post-Login Action.
+    path: 'profile',
+    component: ProfileComponent,
     canActivate: [AuthGuard],
   },
   {
