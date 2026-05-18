@@ -1,31 +1,31 @@
 const { ManagementClient } = require('auth0');
 
-/**
- * Auth0 Post-Login Action — Pizza 42 Token Enrichment
- *
- * Responsibilities (in execution order):
- *   0. Progressive profiling — renders the appropriate form once per login
- *      if the user is still missing profile data. Exits immediately after
- *      api.prompt.render(); the Action is re-called after the form completes.
- *   1. First-login customer role assignment + permissions gap bridge
- *   2. Email-verified claim → Access Token (every login)
- *   3. Order history → ID Token (every login, POC-only unbounded array)
- *   4. Progressive profile claims → ID Token (only when data exists)
- *   5. Roles claim → ID Token (every login)
- *
- * Secrets required (Actions > post-login-enrichment > Secrets):
- *   AUTH0_DOMAIN      — e.g. pizza42-poc-yarin.eu.auth0.com (no https://)
- *   M2M_CLIENT_ID     — Client ID of the NestJS Management Sync M2M app
- *   M2M_CLIENT_SECRET — Client Secret of the same M2M app
- *
- * Form IDs (progressive profiling):
- *   Form A — Basic Profile:               ap_doQ2vxByebenEzMdW8H54s
- *   Form B — Marketing Consent & DOB:     ap_x4CPm9DwSWWH1ax6fXeUa5
- *   Form C — Favourite Crust Preference:  ap_dmgT6H89jFDbxFSw372EBJ
- *
- * @param {Event} event - Details about the user and the context in which they are logging in.
- * @param {PostLoginAPI} api - Interface whose methods can be used to change the behavior of the login.
- */
+//
+ // Auth0 Post-Login Action — Pizza 42 Token Enrichment
+ //
+ //Responsibilities (in execution order):
+ //  0. Progressive profiling — renders the appropriate form once per login
+ //     if the user is still missing profile data. Exits immediately after
+ //     api.prompt.render(); the Action is re-called after the form completes.
+ //  1. First-login customer role assignment + permissions gap bridge
+ //  2. Email-verified claim → Access Token (every login)
+ //  3. Order history → ID Token (every login, POC-only unbounded array)
+ //  4. Progressive profile claims → ID Token (only when data exists)
+ //  5. Roles claim → ID Token (every login)
+ //
+ //Secrets required (Actions > post-login-enrichment > Secrets):
+ //  AUTH0_DOMAIN      — e.g. pizza42-poc-yarin.eu.auth0.com (no https://)
+ //  M2M_CLIENT_ID     — Client ID of the NestJS Management Sync M2M app
+ //   M2M_CLIENT_SECRET — Client Secret of the same M2M app
+ //
+ //Form IDs (progressive profiling):
+ //  Form A — Basic Profile:               event.secrets.PROFILE_FORM
+ //  Form B — Marketing Consent & DOB:     event.secrets.BD_FORM
+ //  Form C — Favourite Crust Preference:  event.secrets.CRUST_FORM
+ //
+ //@param {Event} event - Details about the user and the context in which they are logging in.
+ //@param {PostLoginAPI} api - Interface whose methods can be used to change the behavior of the login.
+ //
 exports.onExecutePostLogin = async (event, api) => {
 
   // =========================================================================
@@ -83,19 +83,19 @@ exports.onExecutePostLogin = async (event, api) => {
     }
 
     if (logins >= 1 && !hasName) {
-      return api.prompt.render('ap_doQ2vxByebenEzMdW8H54s');
+      return api.prompt.render(event.secrets.PROFILE_FORM);
     }
 
     // Form B — Marketing Consent & Date of Birth
     // Shown on login 2+. Re-shown until any value (true or false) is stored.
     if (logins >= 2 && meta.marketing_consent === undefined) {
-      return api.prompt.render('ap_x4CPm9DwSWWH1ax6fXeUa5');
+      return api.prompt.render(event.secrets.BD_FORM);
     }
 
     // Form C — Favourite Crust Preference
     // Shown on login 3+. Re-shown until a preference string is stored.
     if (logins >= 3 && !meta.favorite_crust) {
-      return api.prompt.render('ap_dmgT6H89jFDbxFSw372EBJ');
+      return api.prompt.render(event.secrets.CRUST_FORM);
     }
   }
 
@@ -162,8 +162,14 @@ exports.onExecutePostLogin = async (event, api) => {
     api.idToken.setCustomClaim('https://pizza42.com/first_name',         meta.first_name);
   if (meta.last_name)
     api.idToken.setCustomClaim('https://pizza42.com/last_name',          meta.last_name);
-  if (meta.phone)
-    api.idToken.setCustomClaim('https://pizza42.com/phone',              meta.phone);
+  if (meta.phone) {
+    // Auth0 Forms stores phone as an object { phoneNumber, dialCode, ... }.
+    // Extract a plain string so the claim is always human-readable.
+    const phoneStr = typeof meta.phone === 'string'
+      ? meta.phone
+      : (meta.phone.phoneNumber ?? meta.phone.number ?? meta.phone.value ?? String(meta.phone));
+    api.idToken.setCustomClaim('https://pizza42.com/phone', phoneStr);
+  }
   if (meta.date_of_birth)
     api.idToken.setCustomClaim('https://pizza42.com/date_of_birth',      meta.date_of_birth);
   if (meta.marketing_consent !== undefined)

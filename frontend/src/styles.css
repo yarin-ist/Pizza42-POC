@@ -14,7 +14,13 @@
 
 html, body {
   min-height: 100vh;
-  background-color: var(--color-bg);
+  /* Rich layered gradient applied globally so every route benefits from it.
+     The two radial blobs (indigo top-left, red bottom-right) create depth that
+     makes backdrop-blur glass cards visually pop. */
+  background:
+    radial-gradient(ellipse 110% 70% at 10% -10%, rgba(99,102,241,0.30) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 60% at 90% 110%, rgba(239,68,68,0.22) 0%, transparent 50%),
+    #0f172a;
   color: white;
   font-family: 'Inter', system-ui, sans-serif;
 }
@@ -22,10 +28,12 @@ html, body {
 /* Glassmorphism utility — applied via @apply so it can be composed in templates */
 @layer components {
   .glass {
-    @apply bg-white/[0.07] backdrop-blur-xl border border-white/[0.12] shadow-2xl rounded-2xl;
+    @apply bg-white/[0.07] backdrop-blur-2xl border border-white/[0.15] shadow-2xl rounded-2xl;
+    /* Top-edge highlight simulates light hitting a glass surface from above */
+    box-shadow: 0 8px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.10);
   }
   .glass-hover {
-    @apply hover:bg-white/[0.11] hover:border-white/20 transition-all duration-200;
+    @apply hover:bg-white/[0.12] hover:border-white/25 transition-all duration-200;
   }
   .btn-brand {
     @apply bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-3 rounded-xl
@@ -39,11 +47,9 @@ html, body {
     @apply border border-indigo-400/60 text-indigo-300 hover:bg-indigo-500/20 font-medium px-4 py-2
            rounded-xl transition-all duration-200;
   }
-  /* Rich gradient background used on the full-page containers */
+  /* Page container — transparent so the html/body gradient shows through.
+     Kept as a class so existing templates don't need updating. */
   .app-bg {
-    background:
-      radial-gradient(ellipse 80% 60% at 20% -10%, rgba(99,102,241,0.18) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 40% at 80% 110%, rgba(239,68,68,0.12) 0%, transparent 55%),
-      #0f172a;
+    background: transparent;
   }
 }
