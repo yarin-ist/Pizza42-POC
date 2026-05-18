@@ -1,0 +1,80 @@
+{
+    "transaction": {
+      "id": "test-transaction-004",
+      "locale": "en",
+      "requested_scopes": ["openid", "profile", "email", "offline_access"],
+      "protocol": "oidc-basic-profile",
+      "redirect_uri": "http://localhost:4200/callback",
+      "response_type": ["code"]
+    },
+    "authorization": {
+      "roles": ["Customer"]
+    },
+    "connection": {
+      "id": "con_fpe5kj482KO1eOzQ",
+      "name": "Username-Password-Authentication",
+      "strategy": "auth0",
+      "metadata": {}
+    },
+    "resource_server": {
+      "identifier": "https://api.pizza42.com"
+    },
+    "tenant": {
+      "id": "pizza42-poc-yarin"
+    },
+    "request": {
+      "ip": "1.2.3.4",
+      "method": "GET",
+      "hostname": "pizza42-poc-yarin.eu.auth0.com"
+    },
+    "stats": {
+      "logins_count": 5
+    },
+    "user": {
+      "app_metadata": {
+        "orders": [
+          {
+            "id": "order-d-001",
+            "pizza": "Margherita",
+            "size": "large",
+            "crust": "thin",
+            "toppings": ["basil", "mozzarella"],
+            "timestamp": "2026-05-15T12:00:00.000Z"
+          },
+          {
+            "id": "order-d-002",
+            "pizza": "Pepperoni",
+            "size": "medium",
+            "crust": "thick",
+            "toppings": ["pepperoni", "chili"],
+            "timestamp": "2026-05-17T18:30:00.000Z"
+          }
+        ]
+      },
+      "user_metadata": {
+        "first_name": "Yarin",
+        "last_name": "Cohen",
+        "date_of_birth": "1995-03-12",
+        "marketing_consent": true,
+        "favorite_crust": "thin"
+      },
+      "created_at": "2026-05-10T10:00:00.000Z",
+      "updated_at": "2026-05-18T00:00:00.000Z",
+      "email": "yarin@example.com",
+      "email_verified": true,
+      "family_name": "Cohen",
+      "given_name": "Yarin",
+      "name": "Yarin Cohen",
+      "nickname": "yarin",
+      "picture": "https://www.gravatar.com/avatar/?d=identicon",
+      "user_id": "auth0|6a09fc6b90661700988b9c0c",
+      "identities": [
+        {
+          "connection": "Username-Password-Authentication",
+          "isSocial": false,
+          "provider": "auth0",
+          "userId": "6a09fc6b90661700988b9c0c"
+        }
+      ]
+    }
+  }
