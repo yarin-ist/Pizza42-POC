@@ -40,6 +40,19 @@ export class OrderComponent {
   private readonly router = inject(Router);
   private readonly orderService = inject(OrderService);
 
+  constructor() {
+    // Email verification guard — blocks direct URL navigation to /order for
+    // users whose email is not yet verified. The same check exists on the
+    // "Order Now" button in HomeComponent, but a URL-savvy user could bypass
+    // that by typing /order directly. This is the defence-in-depth layer.
+    this.auth.user$.pipe(take(1)).subscribe(user => {
+      if (user && !user.email_verified) {
+        console.warn('[Order] Email not verified — redirecting home');
+        this.router.navigate(['/']);
+      }
+    });
+  }
+
   // ----- Pizza builder state -----
   selectedSize = signal<string>('medium');
   selectedCrust = signal<string>('classic');

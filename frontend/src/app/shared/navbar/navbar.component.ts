@@ -19,6 +19,10 @@ export class NavbarComponent {
 
   logout(): void {
     console.log('[Navbar] Logging out');
+    // Set the flag BEFORE logout so when the user returns to the app the
+    // auto-silent-auth in HomeComponent does not immediately redirect them
+    // back to Auth0 (their session was just cleared by the logout call).
+    sessionStorage.setItem('_auth_redir', '1');
     this.auth.logout({ logoutParams: { returnTo: window.location.origin } });
   }
 }

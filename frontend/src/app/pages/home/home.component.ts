@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
-import { map } from 'rxjs/operators';
+import { map, filter, take } from 'rxjs/operators';
 import { combineLatest } from 'rxjs';
 
 import { OrderService } from '../../core/services/order.service';
@@ -19,6 +19,28 @@ export class HomeComponent {
   readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly orderService = inject(OrderService);
+
+  constructor() {
+    // Auto-silent-auth: once the SDK finishes loading, if the user is not
+    // authenticated and we are NOT processing a callback (no ?code= in URL),
+    // attempt a transparent loginWithRedirect(). Auth0 checks its own server-side
+    // httpOnly session cookie — if still active it redirects back in ~0.5s with
+    // fresh tokens and no login form shown. A sessionStorage flag prevents
+    // an infinite redirect loop when the Auth0 session has also expired.
+    combineLatest([this.auth.isLoading$, this.auth.isAuthenticated$]).pipe(
+      filter(([loading]) => !loading),
+      take(1),
+    ).subscribe(([, authenticated]) => {
+      if (authenticated) {
+        sessionStorage.removeItem('_auth_redir');
+        return;
+      }
+      if (window.location.search.includes('code=')) return; // callback in progress
+      if (sessionStorage.getItem('_auth_redir')) return;    // already tried once
+      sessionStorage.setItem('_auth_redir', '1');
+      this.auth.loginWithRedirect();
+    });
+  }
 
   /** Show email verification modal */
   showEmailModal = signal(false);

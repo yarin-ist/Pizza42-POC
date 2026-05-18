@@ -86,6 +86,15 @@ exports.onExecutePostLogin = async (event, api) => {
       return api.prompt.render(event.secrets.PROFILE_FORM);
     }
 
+    // Form D — SSO Phone Number
+    // Shown on login 1+ ONLY for SSO users (Google etc.) who have given_name
+    // (so we skipped Form A) but have not yet provided a phone number.
+    // This collects the one piece of data Google cannot supply automatically.
+    // Form ID: ap_1greyzvdC3jrF6dCkNW3En
+    if (event.user.given_name && !meta.phone) {
+      return api.prompt.render('ap_1greyzvdC3jrF6dCkNW3En');
+    }
+
     // Form B — Marketing Consent & Date of Birth
     // Shown on login 2+. Re-shown until any value (true or false) is stored.
     if (logins >= 2 && meta.marketing_consent === undefined) {
@@ -167,7 +176,7 @@ exports.onExecutePostLogin = async (event, api) => {
     // Extract a plain string so the claim is always human-readable.
     const phoneStr = typeof meta.phone === 'string'
       ? meta.phone
-      : (meta.phone.phoneNumber ?? meta.phone.number ?? meta.phone.value ?? String(meta.phone));
+      : (meta.phone.phoneNumber ?? meta.phone.number ?? meta.phone.value ?? JSON.stringify(meta.phone));
     api.idToken.setCustomClaim('https://pizza42.com/phone', phoneStr);
   }
   if (meta.date_of_birth)

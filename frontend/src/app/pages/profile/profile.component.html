@@ -135,11 +135,13 @@
           class="btn-identity-outline text-sm text-center flex-1">
           ← Back to dashboard
         </a>
-        <a
-          routerLink="/order"
-          class="btn-brand text-sm text-center flex-1">
-          🍕 Order now
-        </a>
+        @if (profile.emailVerified) {
+          <a
+            routerLink="/order"
+            class="btn-brand text-sm text-center flex-1">
+            🍕 Order now
+          </a>
+        }
       </div>
 
     } @else {
