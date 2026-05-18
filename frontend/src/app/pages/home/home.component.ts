@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { map } from 'rxjs/operators';
+import { combineLatest } from 'rxjs';
 
 import { OrderService } from '../../core/services/order.service';
 import type { Order } from '../../core/services/order.service';
@@ -44,6 +45,23 @@ export class HomeComponent {
   /** User email for the modal display */
   readonly userEmail$ = this.auth.user$.pipe(
     map(user => user?.email ?? ''),
+  );
+
+  /**
+   * Display name derived from ID token custom claims (progressive profile data)
+   * with fallbacks: custom first_name → OIDC given_name → OIDC name → email.
+   * For database users, Auth0's standard `name` claim defaults to the email
+   * address, so we prioritise the value the user entered in Form A.
+   */
+  readonly displayName$ = combineLatest([
+    this.auth.user$,
+    this.auth.idTokenClaims$,
+  ]).pipe(
+    map(([user, claims]) => {
+      const firstName = claims?.['https://pizza42.com/first_name'] as string | undefined;
+      if (firstName) return firstName;
+      return user?.given_name ?? user?.name ?? user?.email ?? '';
+    }),
   );
 
   /**
