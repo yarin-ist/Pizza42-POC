@@ -36,6 +36,7 @@ const buildAuthMock = (overrides: {
   emailVerified?: boolean;
   idTokenOrders?: Order[];
 } = {}) => ({
+  isLoading$: of(false),
   isAuthenticated$: of(true),
   user$: of({
     email_verified: overrides.emailVerified ?? true,

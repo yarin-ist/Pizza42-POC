@@ -90,9 +90,9 @@ exports.onExecutePostLogin = async (event, api) => {
     // Shown on login 1+ ONLY for SSO users (Google etc.) who have given_name
     // (so we skipped Form A) but have not yet provided a phone number.
     // This collects the one piece of data Google cannot supply automatically.
-    // Form ID: ap_1greyzvdC3jrF6dCkNW3En
+    // Form ID: event.secrets.PHONE_FORM
     if (event.user.given_name && !meta.phone) {
-      return api.prompt.render('ap_1greyzvdC3jrF6dCkNW3En');
+      return api.prompt.render(event.secrets.PHONE_FORM);
     }
 
     // Form B — Marketing Consent & Date of Birth
@@ -193,6 +193,75 @@ exports.onExecutePostLogin = async (event, api) => {
   // display a "Customer" badge without a Management API call.
   // On login 1 this may be [] (role was just assigned above and RBAC has not
   // yet re-evaluated); from login 2 onward it contains ["Customer"].
+  api.idToken.setCustomClaim(
+    'https://pizza42.com/roles',
+    event.authorization?.roles ?? []
+  );
+};
+
+/**
+ * Called by Auth0 after a form rendered by api.prompt.render() completes
+ * (whether submitted or skipped). WITHOUT this function the auth pipeline
+ * cannot resume — Auth0 has no handler to return to and the user is left
+ * on Auth0's domain instead of being redirected to the application.
+ *
+ * The Form's own Flow has already persisted the submitted values to
+ * user_metadata before this function is invoked, so event.user.user_metadata
+ * contains the freshly updated fields. We run the same token-injection blocks
+ * as the tail of onExecutePostLogin so the issued tokens are fully enriched.
+ */
+exports.onContinuePostLogin = async (event, api) => {
+
+  // Block 1 — First-Login Role Assignment
+  // logins_count is still 1 during the resume pass after Form A on a first login,
+  // so role assignment and the permissions gap bridge fire correctly here too.
+  if (event.stats.logins_count === 1) {
+    const mgmt = new ManagementClient({
+      domain: event.secrets.AUTH0_DOMAIN,
+      clientId: event.secrets.M2M_CLIENT_ID,
+      clientSecret: event.secrets.M2M_CLIENT_SECRET,
+    });
+    const { data: roles } = await mgmt.roles.getAll();
+    const customerRole = roles.find((r) => r.name === 'Customer');
+    if (customerRole) {
+      await mgmt.users.assignRoles(
+        { id: event.user.user_id },
+        { roles: [customerRole.id] }
+      );
+    }
+    api.accessToken.setCustomClaim('permissions', ['create:orders']);
+  }
+
+  // Block 2 — Email Verified Claim
+  api.accessToken.setCustomClaim(
+    'https://pizza42.com/email_verified',
+    event.user.email_verified
+  );
+
+  // Block 3 — Order History in ID Token
+  const orders = event.user.app_metadata?.orders || [];
+  api.idToken.setCustomClaim('https://pizza42.com/orders', orders);
+
+  // Block 4 — Progressive Profile Claims
+  const meta = event.user.user_metadata || {};
+  if (meta.first_name)
+    api.idToken.setCustomClaim('https://pizza42.com/first_name',        meta.first_name);
+  if (meta.last_name)
+    api.idToken.setCustomClaim('https://pizza42.com/last_name',         meta.last_name);
+  if (meta.phone) {
+    const phoneStr = typeof meta.phone === 'string'
+      ? meta.phone
+      : (meta.phone.phoneNumber ?? meta.phone.number ?? meta.phone.value ?? JSON.stringify(meta.phone));
+    api.idToken.setCustomClaim('https://pizza42.com/phone', phoneStr);
+  }
+  if (meta.date_of_birth)
+    api.idToken.setCustomClaim('https://pizza42.com/date_of_birth',     meta.date_of_birth);
+  if (meta.marketing_consent !== undefined)
+    api.idToken.setCustomClaim('https://pizza42.com/marketing_consent', meta.marketing_consent);
+  if (meta.favorite_crust)
+    api.idToken.setCustomClaim('https://pizza42.com/favorite_crust',    meta.favorite_crust);
+
+  // Block 5 — Roles Claim
   api.idToken.setCustomClaim(
     'https://pizza42.com/roles',
     event.authorization?.roles ?? []

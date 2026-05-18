@@ -31,6 +31,7 @@ const mockOrder: Order = {
 
 const buildAuthMock = () => ({
   user$: of({ email: 'test@pizza42.com', email_verified: true }),
+  getAccessTokenSilently: vi.fn().mockReturnValue(of('mock-token')),
 });
 
 const setup = () => {
@@ -133,6 +134,9 @@ describe('OrderComponent', () => {
   // ── placeOrder() ────────────────────────────────────────────────────────────
 
   describe('placeOrder()', () => {
+    // Guard: always restore real timers so fake-timer leaks don't cascade into
+    // later tests that use `await new Promise(r => setTimeout(r, 0))`.
+    afterEach(() => vi.useRealTimers());
     it('sets orderState to success and populates toastMessage on 201 (Req 5)', async () => {
       const { component, router, orderServiceMock } = setup();
       orderServiceMock.placeOrder.mockReturnValue(of(mockOrder));
