@@ -4,7 +4,7 @@
 > Built as a technical take-home for an Okta / Auth0 interview.
 
 **Live demo:** https://pizza42-poc.vercel.app  
-**Backend API:** https://pizza42-api.onrender.com  
+**Backend API:** https://pizza42-api-r771.onrender.com  
 **Repository:** https://github.com/yarin-ist/Pizza42-POC
 
 ---

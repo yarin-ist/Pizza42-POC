@@ -13,5 +13,5 @@ export const environment = {
   // Points at the Render-hosted NestJS service.
   // If you chose a different service name on Render, update this value and
   // commit before Vercel re-deploys.
-  apiUrl: 'https://pizza42-api.onrender.com',
+  apiUrl: 'https://pizza42-api-r771.onrender.com',
 };
