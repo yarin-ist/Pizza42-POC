@@ -26,9 +26,9 @@
         <!-- Authenticated -->
         @if (auth.isAuthenticated$ | async) {
           <div class="flex items-center gap-3">
-            <!-- User avatar + display name -->
+            <!-- User avatar + display name — clicking either navigates to /profile -->
             @if (auth.user$ | async; as user) {
-              <div class="flex items-center gap-2">
+              <a routerLink="/profile" class="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer">
                 <img
                   [src]="user.picture"
                   [alt]="user.name"
@@ -40,7 +40,7 @@
                 <span class="text-sm text-slate-300 hidden sm:block">
                   {{ (auth.idTokenClaims$ | async)?.['https://pizza42.com/first_name'] || user.given_name || user.email }}
                 </span>
-              </div>
+              </a>
             }
 
             <!-- Email verification badge -->
