@@ -79,9 +79,61 @@ const setup = (
   return { component, router, authMock, orderServiceMock, httpMock };
 };
 
+/** Unauthenticated init — tests constructor silent re-auth gating */
+const setupUnauth = (opts: { session?: boolean; redir?: boolean } = {}) => {
+  sessionStorage.clear();
+  if (opts.session) sessionStorage.setItem('_auth_session', '1');
+  if (opts.redir) sessionStorage.setItem('_auth_redir', '1');
+
+  const authMock = {
+    isLoading$: of(false),
+    isAuthenticated$: of(false),
+    user$: of(null),
+    idTokenClaims$: of(null),
+    loginWithRedirect: vi.fn(),
+    logout: vi.fn(),
+  };
+
+  TestBed.configureTestingModule({
+    providers: [
+      provideRouter([]),
+      { provide: AuthService, useValue: authMock },
+      { provide: OrderService, useValue: buildOrderServiceMock(true) },
+      { provide: HttpClient, useValue: { get: vi.fn(), post: vi.fn() } },
+    ],
+  });
+
+  const component = TestBed.runInInjectionContext(() => new HomeComponent());
+  return { component, authMock };
+};
+
 // ─── Test suite ──────────────────────────────────────────────────────────────
 
 describe('HomeComponent', () => {
+
+  describe('silent re-auth on init (landing-first)', () => {
+    afterEach(() => sessionStorage.clear());
+
+    it('does not call loginWithRedirect on first visit (no _auth_session)', () => {
+      const { authMock } = setupUnauth();
+      expect(authMock.loginWithRedirect).not.toHaveBeenCalled();
+    });
+
+    it('calls loginWithRedirect when _auth_session is set (F5 restore)', () => {
+      const { authMock } = setupUnauth({ session: true });
+      expect(authMock.loginWithRedirect).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not call loginWithRedirect when _auth_redir is set (post-logout)', () => {
+      const { authMock } = setupUnauth({ session: true, redir: true });
+      expect(authMock.loginWithRedirect).not.toHaveBeenCalled();
+    });
+
+    it('sets silentAuthPending when starting silent re-auth', () => {
+      const { component } = setupUnauth({ session: true });
+      expect(component.silentAuthPending()).toBe(true);
+    });
+  });
 
   // ── Req 10: orders$ from ID token, no HTTP ──────────────────────────────────
 

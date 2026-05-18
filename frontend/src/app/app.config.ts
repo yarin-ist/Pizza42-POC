@@ -21,15 +21,14 @@ import { environment } from '../environments/environment';
 //   is enough to exfiltrate the access token and refresh token. Unacceptable
 //   for a security-conscious product regardless of blast-radius mitigation.
 //
-// UX ON PAGE REFRESH (F5):
-//   Memory is cleared. The user sees the unauthenticated landing page and
-//   clicks "Sign In / Create Account". Angular calls loginWithRedirect(),
-//   which navigates to Auth0. Auth0 checks its own server-side httpOnly
-//   session cookie — never touching the browser's JS storage — and if the
-//   session is still active (default 7-day inactivity window), it immediately
-//   redirects back to the app with fresh tokens. No login form is shown.
-//   Total round-trip: ~0.5 s. If the session has expired the login form
-//   appears — correct security behaviour, equivalent to a cookie timeout.
+// UX — LANDING FIRST + SILENT F5 RESTORE:
+//   First visit in a tab: landing page only; Auth0 opens when the user clicks
+//   Sign In (no automatic redirect to Universal Login).
+//   After login, sessionStorage flag _auth_session marks this tab as "returning".
+//   On F5, memory tokens are cleared but HomeComponent sees _auth_session and
+//   calls loginWithRedirect() once; Auth0's httpOnly session cookie restores
+//   tokens without showing the login form (~0.5 s spinner, no landing flash).
+//   On logout, _auth_session is cleared and _auth_redir blocks silent re-auth.
 //
 // PRODUCTION PATH:
 //   Deploy Auth0 on a Custom Domain (e.g. auth.pizza42.com, same eTLD+1 as

@@ -10,9 +10,8 @@
 
 <div class="min-h-screen app-bg">
 
-  <!-- SDK loading — show spinner while callback is being processed so the user
-       never sees the unauthenticated hero flash before tokens are restored. -->
-  @if (auth.isLoading$ | async) {
+  <!-- SDK loading or silent F5 re-auth — spinner instead of landing flash -->
+  @if ((auth.isLoading$ | async) || silentAuthPending()) {
     <div class="flex items-center justify-center min-h-[60vh]">
       <svg class="animate-spin w-10 h-10 text-indigo-400" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
@@ -22,7 +21,7 @@
   }
 
   <!-- ===================== UNAUTHENTICATED HERO ===================== -->
-  @if (!(auth.isLoading$ | async) && !(auth.isAuthenticated$ | async)) {
+  @if (!(auth.isLoading$ | async) && !(auth.isAuthenticated$ | async) && !silentAuthPending()) {
     <main class="max-w-5xl mx-auto px-4 sm:px-6 py-8">
       <!-- Hero section -->
       <div class="text-center mb-8">

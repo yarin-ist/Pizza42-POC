@@ -46,9 +46,21 @@ describe('NavbarComponent', () => {
   });
 
   describe('logout()', () => {
+    beforeEach(() => {
+      sessionStorage.setItem('_auth_session', '1');
+    });
+
+    afterEach(() => sessionStorage.clear());
+
     it('delegates to auth.logout()', () => {
       component.logout();
       expect(authMock.logout).toHaveBeenCalledTimes(1);
+    });
+
+    it('clears _auth_session and sets _auth_redir to block silent re-auth', () => {
+      component.logout();
+      expect(sessionStorage.getItem('_auth_session')).toBeNull();
+      expect(sessionStorage.getItem('_auth_redir')).toBe('1');
     });
 
     it('passes returnTo: window.location.origin so the user lands back on the app', () => {

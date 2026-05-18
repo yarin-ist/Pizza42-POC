@@ -1,4 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
@@ -8,6 +9,9 @@ import { combineLatest } from 'rxjs';
 import { OrderService } from '../../core/services/order.service';
 import type { Order } from '../../core/services/order.service';
 import { EmailVerificationModalComponent } from '../../shared/email-verification-modal/email-verification-modal.component';
+
+const AUTH_SESSION_KEY = '_auth_session';
+const AUTH_REDIR_KEY = '_auth_redir';
 
 @Component({
   selector: 'app-home',
@@ -19,25 +23,43 @@ export class HomeComponent {
   readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly orderService = inject(OrderService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  /**
+   * True while silently re-authenticating after F5 (memory cache cleared but
+   * this tab previously logged in). Hides the landing hero to avoid a flash.
+   */
+  readonly silentAuthPending = signal(false);
 
   constructor() {
-    // Auto-silent-auth: once the SDK finishes loading, if the user is not
-    // authenticated and we are NOT processing a callback (no ?code= in URL),
-    // attempt a transparent loginWithRedirect(). Auth0 checks its own server-side
-    // httpOnly session cookie — if still active it redirects back in ~0.5s with
-    // fresh tokens and no login form shown. A sessionStorage flag prevents
-    // an infinite redirect loop when the Auth0 session has also expired.
+    // Persist session flag whenever auth becomes true (covers OAuth callback
+    // after take(1) may have already fired).
+    this.auth.isAuthenticated$.pipe(
+      filter(Boolean),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(() => {
+      sessionStorage.setItem(AUTH_SESSION_KEY, '1');
+    });
+
+    // Silent re-auth on F5: only if this tab had a prior login (_auth_session).
+    // First visit: no flag → landing page stays until user clicks Sign In.
     combineLatest([this.auth.isLoading$, this.auth.isAuthenticated$]).pipe(
       filter(([loading]) => !loading),
       take(1),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe(([, authenticated]) => {
       if (authenticated) {
-        sessionStorage.removeItem('_auth_redir');
+        sessionStorage.setItem(AUTH_SESSION_KEY, '1');
+        sessionStorage.removeItem(AUTH_REDIR_KEY);
+        this.silentAuthPending.set(false);
         return;
       }
-      if (window.location.search.includes('code=')) return; // callback in progress
-      if (sessionStorage.getItem('_auth_redir')) return;    // already tried once
-      sessionStorage.setItem('_auth_redir', '1');
+      if (window.location.search.includes('code=')) return;
+      if (sessionStorage.getItem(AUTH_REDIR_KEY)) return;
+      if (!sessionStorage.getItem(AUTH_SESSION_KEY)) return;
+
+      this.silentAuthPending.set(true);
+      sessionStorage.setItem(AUTH_REDIR_KEY, '1');
       this.auth.loginWithRedirect();
     });
   }
