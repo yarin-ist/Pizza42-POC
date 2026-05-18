@@ -171,24 +171,6 @@
             }
           </div>
 
-          <!-- Large Order Now CTA below history -->
-          <div class="mt-8 text-center">
-            <button
-              (click)="onOrderNow()"
-              [disabled]="isCheckingEmail()"
-              class="btn-brand text-lg px-10 py-4 flex items-center gap-2 mx-auto">
-              @if (isCheckingEmail()) {
-                <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                  <path class="opacity-75" fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"/>
-                </svg>
-                Verifying...
-              } @else {
-                🍕 Order Again
-              }
-            </button>
-          </div>
         }
       }
 

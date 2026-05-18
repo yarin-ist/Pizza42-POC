@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { HttpErrorResponse } from '@angular/common/http';
+import { take } from 'rxjs/operators';
 
 import { OrderService } from '../../core/services/order.service';
 import type { EmailUnverifiedError } from '../../core/services/order.service';
@@ -112,8 +113,14 @@ export class OrderComponent {
         console.log('[Order] Order placed successfully', order);
         this.orderState.set('success');
         this.toastMessage.set('🍕 Order placed! Your pizza is on its way.');
-        // Navigate home after a brief delay to show the toast
-        setTimeout(() => this.router.navigate(['/']), 2500);
+        // Force a silent token refresh so Auth0 re-runs the Post-Login Action,
+        // which reads the newly saved app_metadata.orders and embeds them in a
+        // fresh ID token. When we navigate home, idTokenClaims$ immediately
+        // reflects the new order — no re-login required.
+        this.auth.getAccessTokenSilently({ cacheMode: 'off' }).pipe(take(1)).subscribe({
+          next: () => setTimeout(() => this.router.navigate(['/']), 1500),
+          error: () => setTimeout(() => this.router.navigate(['/']), 1500),
+        });
       },
       error: (err: EmailUnverifiedError | HttpErrorResponse) => {
         if ((err as EmailUnverifiedError).type === 'EMAIL_UNVERIFIED') {

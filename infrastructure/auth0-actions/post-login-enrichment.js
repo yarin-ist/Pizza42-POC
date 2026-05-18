@@ -52,7 +52,11 @@ exports.onExecutePostLogin = async (event, api) => {
 
     // Form A — Basic Profile (first name / last name)
     // Shown on login 1+. Re-shown each login until both fields are filled.
-    if (logins >= 1 && (!meta.first_name || !meta.last_name)) {
+    // Skip Form A if the user already has a name from any source:
+    // - user_metadata.first_name (previously filled Form A)
+    // - event.user.given_name (SSO providers like Google set this natively)
+    const hasName = meta.first_name || event.user.given_name;
+    if (logins >= 1 && !hasName) {
       return api.prompt.render('ap_doQ2vxByebenEzMdW8H54s');
     }
 

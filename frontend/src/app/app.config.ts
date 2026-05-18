@@ -13,44 +13,41 @@ export const appConfig: ApplicationConfig = {
 
     // ─── Auth0 SDK Configuration ──────────────────────────────────────────────
     //
-    // SECURITY DECISION: cacheLocation: 'memory'
+    // CACHE LOCATION: 'localstorage'
     //
-    // WHY NOT 'localstorage':
-    //   localStorage is accessible to every JavaScript execution context on the
-    //   page — including third-party scripts, browser extensions, and any XSS
-    //   payload. A single injected script line:
+    // SECURITY TRADEOFF — documented intentionally:
+    //   localStorage is readable by any JavaScript running on the page. An XSS
+    //   payload could extract the access token and refresh token in one line:
     //       localStorage.getItem('@@auth0spajs@@::...')
-    //   retrieves both the access token AND the refresh token. The refresh token
-    //   is particularly dangerous because it never expires on its own — an
-    //   attacker can silently re-issue access tokens indefinitely.
+    //   The ideal setting is 'memory' which stores tokens in a JS closure
+    //   inaccessible to other scripts. Auth0 recommends 'memory' for SPAs.
     //
-    // WHY 'memory' IS CORRECT:
-    //   The SDK stores tokens inside a JavaScript closure in heap memory.
-    //   - XSS cannot read heap memory across scope boundaries.
-    //   - DevTools > Application > LocalStorage shows nothing sensitive.
-    //   - This is Auth0's own recommendation for SPAs in their security guidance.
+    // WHY WE USE 'localstorage' FOR THIS POC:
+    //   With 'memory', tokens are erased on every page refresh (F5). The SDK
+    //   recovers by firing a silent /authorize request in a hidden iframe using
+    //   Auth0's httpOnly session cookie. In modern browsers with strict
+    //   third-party cookie policies (Safari ITP, Chrome CHIPS), that iframe
+    //   cannot read the Auth0 session cookie, so the silent re-auth fails and
+    //   the user is shown the unauthenticated landing page — effectively logged
+    //   out on every refresh. This is unacceptable UX for a live POC demo.
     //
-    // TRADEOFF — page refresh:
-    //   Memory is cleared on page refresh. Without refresh tokens, the user would
-    //   be redirected to Auth0 on every F5. We solve this with:
-    //     useRefreshTokens: true + offline_access scope
-    //   When the page loads and memory is empty, the SDK checks for an active
-    //   Auth0 session (via a silent /authorize iframe call using Auth0's own
-    //   httpOnly session cookie). If the session exists, it silently issues a new
-    //   access token — the user sees nothing, the app continues without redirect.
-    //   The refresh token itself is stored by Auth0 server-side and exchanged
-    //   via a backchannel POST /oauth/token — never in the browser's storage.
+    // MITIGATION:
+    //   The access token has a short lifetime (default 86400s / 24h in Auth0).
+    //   Refresh token rotation is enabled: a stolen refresh token can only be
+    //   used once before it is invalidated. These controls limit the blast
+    //   radius of an XSS attack and are documented here for the interview.
     //
-    // REMAINING TRADEOFF:
-    //   If Auth0's own session cookie expires (default 7 days of inactivity),
-    //   the user will be redirected to login. This is the correct security
-    //   behaviour — it is equivalent to an httpOnly session cookie timeout.
+    // PRODUCTION PATH:
+    //   Deploy behind a Content Security Policy (CSP) that whitelists only
+    //   trusted script sources, eliminating the XSS vector. Then switch to
+    //   cacheLocation: 'memory' once third-party cookie restrictions are
+    //   solved (e.g. Auth0's Custom Domains + SameSite=None; Secure).
     provideAuth0({
       domain: environment.auth0.domain,
       clientId: environment.auth0.clientId,
       authorizationParams: environment.auth0.authorizationParams,
       useRefreshTokens: true,
-      cacheLocation: 'memory',
+      cacheLocation: 'localstorage',
       httpInterceptor: {
         // authHttpInterceptorFn will automatically attach Bearer tokens to any
         // outbound request whose URL starts with the API base URL.

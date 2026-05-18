@@ -25,7 +25,9 @@ interface JwtPayload {
 
 interface CreateOrderBody {
   pizza: string;
+  crust: string;
   size: string;
+  toppings: string[];
 }
 
 @Controller('orders')

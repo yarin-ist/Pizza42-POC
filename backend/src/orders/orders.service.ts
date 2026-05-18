@@ -5,13 +5,17 @@ import { ManagementClient } from 'auth0';
 export interface Order {
   id: string;
   pizza: string;
+  crust: string;
   size: string;
+  toppings: string[];
   timestamp: string;
 }
 
 export interface CreateOrderDto {
   pizza: string;
+  crust: string;
   size: string;
+  toppings: string[];
 }
 
 @Injectable()
@@ -37,7 +41,9 @@ export class OrdersService implements OnModuleInit {
     const newOrder: Order = {
       id: crypto.randomUUID(),
       pizza: orderData.pizza,
+      crust: orderData.crust,
       size: orderData.size,
+      toppings: orderData.toppings ?? [],
       timestamp: new Date().toISOString(),
     };
 
