@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
+import { map } from 'rxjs';
 
 @Component({
   selector: 'app-navbar',
@@ -11,6 +12,17 @@ import { AuthService } from '@auth0/auth0-angular';
 })
 export class NavbarComponent {
   readonly auth = inject(AuthService);
+
+  /**
+   * Emits true only when the ID token contains "Admin" in the
+   * https://pizza42.com/roles claim. Used to show the Admin nav link.
+   */
+  readonly isAdmin$ = this.auth.idTokenClaims$.pipe(
+    map(claims => {
+      const roles = claims?.['https://pizza42.com/roles'] as string[] | undefined;
+      return roles?.includes('Admin') ?? false;
+    }),
+  );
 
   login(): void {
     console.log('[Navbar] Initiating Auth0 Universal Login');

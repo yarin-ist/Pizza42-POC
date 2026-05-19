@@ -4,6 +4,8 @@ import { AuthGuard } from '@auth0/auth0-angular';
 import { HomeComponent } from './pages/home/home.component';
 import { OrderComponent } from './pages/order/order.component';
 import { ProfileComponent } from './pages/profile/profile.component';
+import { AdminComponent } from './pages/admin/admin.component';
+import { adminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
   {
@@ -26,6 +28,14 @@ export const routes: Routes = [
     path: 'profile',
     component: ProfileComponent,
     canActivate: [AuthGuard],
+  },
+  {
+    // Admin-only route — protected by AuthGuard (authentication) and adminGuard
+    // (authorization: requires the "Admin" role in the ID token roles claim).
+    // Non-admin users are silently redirected to home.
+    path: 'admin',
+    component: AdminComponent,
+    canActivate: [AuthGuard, adminGuard],
   },
   {
     path: '**',
