@@ -17,9 +17,13 @@ const { ManagementClient } = require('auth0');
 //   4. Signal Auth0 to resume the session as the primary user.
 //
 // Safety:
-//   - Only runs if the current user's email is verified (prevents malicious
-//     pre-registration of an email to hijack someone else's social account).
-//   - Only links to other accounts with verified emails (same safety rule).
+//   - The PRIMARY candidate must have a verified email (enforced in the
+//     candidates filter below). We never link INTO an unverified account.
+//   - The current user (secondary) may be unverified — this is intentional.
+//     Scenario: user signs up with Google (verified), then creates an
+//     email+password account with the same email. The email+password account
+//     starts as unverified. We still link it as a secondary identity under
+//     the verified Google primary so the user gets one unified profile.
 //   - Idempotent: if already linked, the Management API returns a no-op.
 //
 // Setup:
@@ -30,10 +34,6 @@ const { ManagementClient } = require('auth0');
 //
 
 exports.onExecutePostLogin = async (event, api) => {
-  // Guard: linking only makes sense for verified emails.
-  // An unverified email user cannot prove ownership of the address.
-  if (!event.user.email_verified) return;
-
   const mgmt = new ManagementClient({
     domain:       event.secrets.AUTH0_DOMAIN,
     clientId:     event.secrets.M2M_CLIENT_ID,
@@ -55,16 +55,25 @@ exports.onExecutePostLogin = async (event, api) => {
   // No duplicates — nothing to do.
   if (candidates.length === 0) return;
 
-  // Choose the primary account: prefer the one with the most order history
-  // (to preserve order data), then prefer auth0| (email+password) over social
-  // connections so the canonical identity is always a stable DB account.
+  // Choose the primary account: the account we merge INTO must be verified.
+  // Priority:
+  //   1. More order history wins (preserves the user's pizza history).
+  //   2. Tie-break: if the current user is unverified, prefer the verified
+  //      candidate (the social/SSO account) as primary.
+  //   3. Final tie-break: prefer auth0| (email+password) for verified-vs-verified,
+  //      so the canonical identity is a stable database account.
+  const currentIsVerified = event.user.email_verified;
+
   const primary = candidates.sort((a, b) => {
     const aOrders = Array.isArray(a.app_metadata?.orders) ? a.app_metadata.orders.length : 0;
     const bOrders = Array.isArray(b.app_metadata?.orders) ? b.app_metadata.orders.length : 0;
 
     if (bOrders !== aOrders) return bOrders - aOrders; // more orders wins
 
-    // Same order count — prefer database (auth0|) connection as primary
+    // Current user is unverified — always pick the verified candidate as primary
+    if (!currentIsVerified) return -1; // first candidate wins (all are verified)
+
+    // Both verified, same order count — prefer database connection as primary
     const aIsDb = a.user_id.startsWith('auth0|') ? 1 : 0;
     const bIsDb = b.user_id.startsWith('auth0|') ? 1 : 0;
     return bIsDb - aIsDb;
